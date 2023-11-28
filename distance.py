@@ -169,13 +169,19 @@ def find_cone_dist(mtx, mounting_height):
     global cone_img_x, cone_img_y
     
     # acquire principal point y coordinate and y focal length from the camera matrix
+    x_center = mtx[0, 2]
     y_center = mtx[1, 2]
+    x_focal = mtx[0, 0]
     y_focal = mtx[1, 1]
     
     # calculate the distance accounting for the mounting height
     x_car_dist = (y_focal * mounting_height) / (cone_img_y - y_center)
+    y_car_dist = (x_center - cone_img_x) * x_car_dist / x_focal
     print("estimated cone distance:")
     print(x_car_dist, "cm")
+    print("estimated cone shift:")
+    print(y_car_dist, "cm")
+    print(f"the cone corner at car frame is at: ({x_car_dist}, {y_car_dist})")
     
     return x_car_dist
 

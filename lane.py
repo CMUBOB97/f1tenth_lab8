@@ -17,9 +17,13 @@ import numpy as np
 DEBUG = 1
 
 # hsv upper and lower bounds for the lane
-# NOTE: this is not the right HSV range yet
-lane_lower_bound = np.array([0, 75, 30])
-lane_upper_bound = np.array([10, 100, 50])
+# NOTE: normal HSV ranges are:
+# H: 0 - 360 S: 0 - 100 V: 0 - 100
+# but opencv uses
+# H: 0 - 179 S: 0 - 255 V: 0 - 255
+# so the values below are scaled
+lane_lower_bound = np.array([20, 40, 160])
+lane_upper_bound = np.array([50, 160, 205])
 
 """
 NOTE:
@@ -32,21 +36,30 @@ feel free to add the remaining functions
 # segment the lane image based on HSV color scheme
 def segment_lane_image(lane_img_file):
     
-    # read the image in HSV color scheme
+    # read the image
     lane_img = cv2.imread(lane_img_file)
-    lane_hsv = cv2.cvtColor(lane_img, cv2.COLOR_BGR2HSV)
+    if DEBUG == 1:
+        print("check original image:")
+        cv2.namedWindow('original image', cv2.WINDOW_AUTOSIZE)
+        cv2.imshow('original image', lane_img)
+        cv2.waitKey(0)
+    
+    # smooth the image (blur)
+    blur_img = cv2.blur(lane_img, (5, 5))
+    if DEBUG == 1:
+        cv2.namedWindow('blurred image', cv2.WINDOW_AUTOSIZE)
+        cv2.imshow('blurred image', blur_img)
+        cv2.waitKey(0)
+    
+    blur_hsv = cv2.cvtColor(blur_img, cv2.COLOR_BGR2HSV)
     
     # create a mask using the defined lower and upper bounds
-    lane_mask = cv2.inRange(lane_hsv, lane_lower_bound, lane_upper_bound)
+    lane_mask = cv2.inRange(blur_hsv, lane_lower_bound, lane_upper_bound)
     
     # segment the image
     lane_segmented = cv2.bitwise_and(lane_img, lane_img, mask=lane_mask)
     if DEBUG == 1:
-        cv2.namedWindow('original image', cv2.WINDOW_AUTOSIZE)
         cv2.namedWindow('segmented image', cv2.WINDOW_AUTOSIZE)
-        print("check original image:")
-        cv2.imshow('original image', lane_img)
-        cv2.waitKey(0)
         print("check segmented image:")
         cv2.imshow('segmented image', lane_segmented)
         cv2.waitKey(0)
