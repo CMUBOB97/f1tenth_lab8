@@ -14,7 +14,7 @@ import glob
 import numpy as np
 
 # debug flag for debug print
-DEBUG = 1
+DEBUG = 0
 
 # hsv upper and lower bounds for the lane
 # NOTE: normal HSV ranges are:
@@ -23,17 +23,16 @@ DEBUG = 1
 # H: 0 - 179 S: 0 - 255 V: 0 - 255
 # so the values below are scaled
 lane_lower_bound = np.array([20, 40, 160])
-lane_upper_bound = np.array([50, 160, 205])
+lane_upper_bound = np.array([50, 160, 255])
+
 
 """
-NOTE:
-this is a very rough prototype that does not work yet.
-we need to blur the image, set proper threshold, make
-connectivity patches, do edge detections, etc.
-
-feel free to add the remaining functions
+This function contains the following steps:
+- blur the original image
+- mask the image according to target HSV
+- create a segmented image (black and white)
+- draw coutours around and overlay that on the original image
 """
-# segment the lane image based on HSV color scheme
 def segment_lane_image(lane_img_file):
     
     # read the image
@@ -45,8 +44,9 @@ def segment_lane_image(lane_img_file):
         cv2.waitKey(0)
     
     # smooth the image (blur)
-    blur_img = cv2.blur(lane_img, (5, 5))
+    blur_img = cv2.blur(lane_img, (7, 7))
     if DEBUG == 1:
+        print("check blurred image:")
         cv2.namedWindow('blurred image', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('blurred image', blur_img)
         cv2.waitKey(0)
@@ -57,14 +57,24 @@ def segment_lane_image(lane_img_file):
     lane_mask = cv2.inRange(blur_hsv, lane_lower_bound, lane_upper_bound)
     
     # segment the image
-    lane_segmented = cv2.bitwise_and(lane_img, lane_img, mask=lane_mask)
+    lane_filtered = cv2.bitwise_and(blur_img, blur_img, mask=lane_mask)
+    lane_grayscale = cv2.cvtColor(lane_filtered, cv2.COLOR_BGR2GRAY)
+    ret, lane_segmented = cv2.threshold(lane_grayscale, 127, 255, 0)
     if DEBUG == 1:
-        cv2.namedWindow('segmented image', cv2.WINDOW_AUTOSIZE)
         print("check segmented image:")
+        cv2.namedWindow('segmented image', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('segmented image', lane_segmented)
         cv2.waitKey(0)
-    
-    return lane_segmented
+        
+    # draw edges
+    contours, hierarchy = cv2.findContours(lane_segmented, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    lane_img_drawn = cv2.drawContours(lane_img, contours, -1, (0, 255, 0), 3)
+    print("check final result:")
+    cv2.namedWindow('final result', cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('final result', lane_img_drawn)
+    cv2.waitKey(0)
+        
+    return lane_img_drawn
 
 if __name__ == "__main__":
     
